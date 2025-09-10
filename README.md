@@ -1,4 +1,4 @@
-# Exercicis d'Avaluació Continuada (Física UB)
+# Exercicis d'Avaluació Continuada (Òptica / Física UB)
 
 En aquest repositori hi ha alguns dels exercicis proposats per fer a casa durant els cursos anteriors de l'Assignatura d'Òptica del Grau de Física de la Universitat de Barcelona.
 
