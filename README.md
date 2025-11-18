@@ -9,7 +9,7 @@ hi ha un seguit de carpetes indicant el semestre en el que s'ha proposat l'exerc
 
 En els quaderns de Jupyter, en cas de disposar de la icona
 <kbd>
-<img width="15" alt="gCollab" src="https://github.com/dmaluenda/hands_on_machine_learning/raw/master/resources/colab_logo_32px.png" /> Run in Google Colab
+<a href=https://colab.google target="_blank"><img width="15" alt="gCollab" src="https://github.com/dmaluenda/hands_on_machine_learning/raw/master/resources/colab_logo_32px.png" /> Run in Google Colab</a>
 </kbd>
 en la capçalera del document, podreu fer correr el codi de manera directe via web,
 tan sols amb clicar-hi.
