@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}</style>
+</head>
+<body>
+<title>Simulador lupa i mòbil</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600&display=swap">
+<style>
+/* Layout: banc òptic a amplada completa a dalt; a sota, controls i resultats en dues columnes que s'apilen al mòbil */
+:root{
+  --bg:#f2f4f7; --panel:#ffffff; --fg:#16202c; --muted:#5a6677; --line:#d3d9e2;
+  --accent:#1f5fd1; --on-accent:#ffffff;
+  --axis:#8b95a4; --glass:#2f86b0; --stop:#16202c; --paper:#c9d0da;
+  --axial:#1f5fd1; --chief:#cf3b1b; --rim:#d98300; --pe:#7a3cc2; --ps:#0d8a68; --obj:#2c7d31;
+  --ok:#0f7a4a; --warn:#a85a07; --bad:#b42318;
+  --f-display:"Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Inter", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e131a; --panel:#151c26; --fg:#e5eaf1; --muted:#98a4b5; --line:#29333f;
+    --accent:#6ea2ff; --on-accent:#0e131a;
+    --axis:#6a7585; --glass:#68bde3; --stop:#e5eaf1; --paper:#3a4554;
+    --axial:#6ea2ff; --chief:#ff7a5a; --rim:#ffb547; --pe:#b48cff; --ps:#3fd3a5; --obj:#72cf76;
+    --ok:#4cc38a; --warn:#f0a24a; --bad:#ff6b5e;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e131a; --panel:#151c26; --fg:#e5eaf1; --muted:#98a4b5; --line:#29333f;
+  --accent:#6ea2ff; --on-accent:#0e131a;
+  --axis:#6a7585; --glass:#68bde3; --stop:#e5eaf1; --paper:#3a4554;
+  --axial:#6ea2ff; --chief:#ff7a5a; --rim:#ffb547; --pe:#b48cff; --ps:#3fd3a5; --obj:#72cf76;
+  --ok:#4cc38a; --warn:#f0a24a; --bad:#ff6b5e;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:22px 40px}
+.wrap{max-width:1180px;margin:0 auto;display:grid;gap:16px}
+header h1{font-family:var(--f-display);font-weight:600;font-size:1.65rem;margin:0;letter-spacing:-.01em;text-wrap:balance}
+header p{margin:.3rem 0 0;color:var(--muted);max-width:75ch}
+.bench{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 8px 4px}
+.scroll{overflow-x:auto}
+#diag{display:block;width:100%;min-width:680px;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12.5px;color:var(--muted);padding:6px 8px 4px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.cols{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:840px){.cols{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;min-width:0}
+.panel h2{font-family:var(--f-display);font-size:1.05rem;font-weight:600;margin:0 0 10px}
+.presets{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.presets button{font:inherit;font-size:13px;padding:4px 12px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--fg);cursor:pointer}
+.presets button:hover{border-color:var(--accent)}
+.presets button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.grp{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:12px 0 2px;font-weight:600}
+.row{display:grid;grid-template-columns:minmax(0,12rem) minmax(0,1fr) 5.6rem;align-items:center;gap:10px;padding:3px 0}
+.row label{font-size:13.5px}
+.row .sym{font-family:var(--f-mono);color:var(--muted);font-size:12.5px;margin-left:5px}
+input[type=range]{width:100%;accent-color:var(--accent);margin:0}
+.num{display:flex;align-items:center;gap:4px}
+.num input{width:100%;min-width:0;font-family:var(--f-mono);font-size:13px;padding:3px 5px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg);text-align:right}
+.num small{color:var(--muted);font-family:var(--f-mono);font-size:12px;min-width:1.6em}
+@media (max-width:520px){
+  .row{grid-template-columns:minmax(0,1fr) 5.6rem}
+  .row input[type=range]{grid-column:1/-1;grid-row:2}
+}
+h3{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:16px 0 8px;font-weight:600}
+h3:first-of-type{margin-top:4px}
+dl.kv{display:grid;grid-template-columns:minmax(0,9.5rem) minmax(0,1fr);gap:8px 14px;margin:0;font-size:13.5px}
+dl.kv dt{color:var(--muted)}
+dl.kv dd{margin:0}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.fx{display:block;font-family:var(--f-mono);font-size:11.5px;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:12.5px;padding:1px 10px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
+.chip.ok{color:var(--ok)} .chip.warn{color:var(--warn)} .chip.bad{color:var(--bad)}
+.note{font-size:12.5px;color:var(--muted);margin:14px 0 0;max-width:75ch}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+sub{font-size:.72em}
+
+#diag text{font-family:var(--f-mono);font-size:12px;fill:var(--fg)}
+#diag .tm{fill:var(--muted)}
+#diag .tpe{fill:var(--pe)} #diag .tps{fill:var(--ps)}
+.axis{stroke:var(--axis);stroke-width:1;stroke-dasharray:12 4 2 4}
+.lens{stroke:var(--glass);stroke-width:2.4;fill:none;stroke-linejoin:round}
+.stop{stroke:var(--stop);stroke-width:4.5}
+.paper{stroke:var(--paper);stroke-width:3}
+.sensor{fill:var(--stop)}
+.ray{stroke-width:1.7;fill:none;stroke-linecap:round}
+.r-ax{stroke:var(--axial)} .r-ch{stroke:var(--chief)} .r-rim{stroke:var(--rim)}
+.ext{stroke-width:1.3;stroke-dasharray:3 4}
+.blk{opacity:.32}
+.pupil{stroke-width:4}
+.pplane{stroke-width:1;stroke-dasharray:1 3}
+.pe{stroke:var(--pe)} .ps{stroke:var(--ps)}
+.lead{stroke:var(--muted);stroke-width:.8;stroke-dasharray:2 3;opacity:.75}
+.tick{stroke:var(--muted);stroke-width:1}
+.obj{stroke:var(--obj);stroke-width:2;fill:var(--obj)}
+.hg{cursor:ns-resize;touch-action:none;outline:none}
+.hit{fill:transparent;stroke:none}
+.ring{fill:var(--panel);stroke:var(--obj);stroke-width:2}
+.hg:hover .ring{stroke-width:3}
+.hg:focus-visible .ring{stroke:var(--accent);stroke-width:3}
+#diag .tobj{fill:var(--obj);font-weight:500}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Lupa davant la càmera del mòbil</h1>
+    <p>Muntatge de l'exercici d'avaluació continuada: paper al pla focal de la lupa i càmera enfocada a l'infinit, separades una distància <i>e</i>. Mou els controls i mira on queden el diafragma d'obertura i les pupil·les, i com la muntura de la lupa vinyeta el camp. Arrossega el punt verd del paper amunt i avall per triar l'alçada <i>y</i> del punt objecte.</p>
+  </header>
+
+  <section class="bench" aria-label="Traçat de raigs">
+    <div class="scroll"><svg id="diag" viewBox="0 0 1000 520" role="img" aria-label="Traçat de raigs del sistema lupa més càmera"></svg></div>
+    <div class="legend">
+      <span><svg width="16" height="16"><circle cx="8" cy="8" r="6" class="ring"/><circle cx="8" cy="8" r="3" class="obj"/></svg>Punt del paper (arrossega'l)</span>
+      <span><svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" class="axis"/></svg>Eix òptic</span>
+      <span><svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" class="ray r-ax"/></svg>Raigs en eix (vora del DO)</span>
+      <span><svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" class="ray r-ch"/></svg>Raig principal (centre del DO)</span>
+      <span><svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" class="ray r-rim"/></svg>Raigs en camp per les vores del DO</span>
+      <span><svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" class="ray ext r-ch"/></svg>Prolongació cap a la PE / PS</span>
+      <span><svg width="26" height="8"><line x1="0" y1="4" x2="26" y2="4" class="ray r-rim blk"/></svg>Raig aturat (vinyetatge)</span>
+    </div>
+  </section>
+
+  <div class="cols">
+    <section class="panel" aria-labelledby="h-ctrl">
+      <h2 id="h-ctrl">Paràmetres</h2>
+      <div class="presets" id="presets" role="group" aria-label="Configuracions d'exemple"></div>
+      <div id="controls"></div>
+    </section>
+    <section class="panel" aria-labelledby="h-res" aria-live="polite">
+      <h2 id="h-res">Resultats</h2>
+      <div id="results"></div>
+      <p class="note">Model paraxial de lents primes. Origen de <i>x</i> a la lupa, positiu cap a la càmera. <i>y</i> és l'alçada del punt sobre el paper. La fracció de feix es calcula en el pla del dibuix.</p>
+    </section>
+  </div>
+</div>
+
+<script>
+(() => {
+  const SL = [
+    {g:'Lupa', id:'fL', lab:'Focal', sym:'f′<sub>L</sub>', min:20, max:300, step:1, unit:'mm'},
+    {g:'Lupa', id:'DL', lab:'Diàmetre', sym:'D<sub>L</sub>', min:4, max:150, step:1, unit:'mm'},
+    {g:'Càmera del mòbil', id:'fc', lab:'Focal de l’objectiu', sym:'f′<sub>c</sub>', min:2, max:80, step:0.1, unit:'mm'},
+    {g:'Càmera del mòbil', id:'Dc', lab:'Obertura de l’objectiu', sym:'D<sub>c</sub>', min:0.5, max:80, step:0.1, unit:'mm'},
+    {g:'Càmera del mòbil', id:'hs', lab:'Alçada del sensor', sym:'h<sub>s</sub>', min:1, max:60, step:0.1, unit:'mm'},
+    {g:'Muntatge', id:'e', lab:'Distància lupa–càmera', sym:'e', min:0, max:400, step:1, unit:'mm'},
+    {g:'Vista', id:'k', lab:'Escala vertical', sym:'', min:1, max:8, step:0.5, unit:'×'},
+  ];
+  const PRESETS = [
+    {id:'did', lab:'Didàctic', v:{fL:100, DL:60, fc:20, Dc:10, hs:24, e:60, y:14, k:1}},
+    {id:'mob', lab:'Mòbil real', v:{fL:125, DL:75, fc:4.8, Dc:2.8, hs:5.6, e:80, y:26, k:1}},
+    {id:'big', lab:'e > f′L (PE real)', v:{fL:80, DL:60, fc:20, Dc:10, hs:24, e:140, y:7, k:1}},
+    {id:'e0', lab:'Lupa enganxada (e = 0)', v:{fL:100, DL:60, fc:20, Dc:10, hs:24, e:0, y:18, k:1}},
+    {id:'ldo', lab:'La lupa fa de DO', v:{fL:100, DL:8, fc:20, Dc:20, hs:24, e:60, y:5, k:2}},
+  ];
+  const P = {...PRESETS[0].v};
+  let active = 'did';
+
+  const fmt = (v, d = 1) => Number.isFinite(v) ? v.toLocaleString('ca-ES', {maximumFractionDigits: d}) : '∞';
+  const deg = r => r * 180 / Math.PI;
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+  /* ---------- controls ---------- */
+  const ctrl = document.getElementById('controls');
+  let lastG = '';
+  for (const s of SL) {
+    if (s.g !== lastG) {
+      const h = document.createElement('div'); h.className = 'grp'; h.textContent = s.g; ctrl.appendChild(h); lastG = s.g;
+    }
+    const row = document.createElement('div'); row.className = 'row';
+    row.innerHTML =
+      `<label for="r-${s.id}">${s.lab}<span class="sym">${s.sym}</span></label>` +
+      `<input type="range" id="r-${s.id}" min="${s.min}" max="${s.max}" step="${s.step}">` +
+      `<span class="num"><input type="number" id="n-${s.id}" min="${s.min}" max="${s.max}" step="${s.step}" aria-label="${s.lab} (valor)"><small>${s.unit}</small></span>`;
+    ctrl.appendChild(row);
+    const r = row.querySelector('input[type=range]'), n = row.querySelector('input[type=number]');
+    r.addEventListener('input', () => { P[s.id] = +r.value; n.value = r.value; active = null; update(); });
+    n.addEventListener('input', () => {
+      const v = parseFloat(n.value); if (!Number.isFinite(v)) return;
+      P[s.id] = Math.min(s.max, Math.max(s.min, v)); r.value = P[s.id]; active = null; update();
+    });
+    n.addEventListener('change', () => { n.value = P[s.id]; });
+  }
+  const pre = document.getElementById('presets');
+  for (const pr of PRESETS) {
+    const b = document.createElement('button'); b.type = 'button'; b.id = 'p-' + pr.id; b.textContent = pr.lab;
+    b.addEventListener('click', () => { Object.assign(P, pr.v); active = pr.id; syncInputs(); update(); });
+    pre.appendChild(b);
+  }
+  function syncInputs() {
+    for (const s of SL) { document.getElementById('r-' + s.id).value = P[s.id]; document.getElementById('n-' + s.id).value = P[s.id]; }
+  }
+
+  /* ---------- optics ---------- */
+  function compute(p) {
+    const rL = p.DL / 2, rc = p.Dc / 2, xs = p.e + p.fc;
+    const DOcam = p.Dc <= p.DL;   // paper al focus: limita el diàmetre més petit
+    let PE, PS;
+    if (DOcam) {
+      const d = p.fL - p.e;
+      PE = Math.abs(d) < 1e-9 ? {inf: true, D: Infinity} : {x: p.e * p.fL / d, D: p.Dc * p.fL / Math.abs(d)};
+      PS = {x: p.e, D: p.Dc};
+    } else {
+      PE = {x: 0, D: p.DL};
+      const d = p.e - p.fc;
+      PS = Math.abs(d) < 1e-9 ? {inf: true, D: Infinity} : {x: p.e + p.e * p.fc / d, D: p.DL * p.fc / Math.abs(d)};
+    }
+    const u = -p.y / p.fL;   // pendent del feix entre lupa i càmera (paper al focus)
+    const rDO = DOcam ? rc : rL, xDO = DOcam ? p.e : 0;
+    const thP = p.e > 0 ? Math.atan(Math.abs(p.DL - p.Dc) / (2 * p.e)) : Math.PI / 2;
+    const thLim = p.e > 0 ? Math.atan((p.DL + p.Dc) / (2 * p.e)) : Math.PI / 2;
+    const thS = Math.atan(p.hs / (2 * p.fc));
+    return {rL, rc, xs, DOcam, PE, PS, u, rDO, xDO, thP, thLim, thS};
+  }
+  // raig definit per l'alçada al pla del DO i el pendent u entre lupa i càmera
+  function trace(p, c, hDO, u) {
+    const hL = c.DOcam ? hDO - u * p.e : hDO;
+    const hc = hL + u * p.e;
+    const yO = -p.fL * u;                 // punt del paper d'on surt (pla focal de la lupa)
+    const blockL = Math.abs(hL) > c.rL + 1e-9;
+    const blockC = !blockL && Math.abs(hc) > c.rc + 1e-9;
+    const uOut = u - hc / p.fc;
+    const ys = hc + uOut * p.fc;          // = u·f′c
+    return {yO, hL, hc, uOut, ys, blockL, blockC};
+  }
+  function beamFraction(p, c, u) {
+    let lo, hi;
+    if (c.DOcam) { lo = Math.max(-c.rc, u * p.e - c.rL); hi = Math.min(c.rc, u * p.e + c.rL); return Math.max(0, hi - lo) / (2 * c.rc); }
+    lo = Math.max(-c.rL, -c.rc - u * p.e); hi = Math.min(c.rL, c.rc - u * p.e); return Math.max(0, hi - lo) / (2 * c.rL);
+  }
+
+  /* ---------- drawing ---------- */
+  const svg = document.getElementById('diag');
+  const W = 1000, H = 520, mL = 34, mR = 34, mT = 64, mB = 84;
+  const f1 = v => v.toFixed(1);
+  const ln = (x1, y1, x2, y2, cls) => `<line x1="${f1(x1)}" y1="${f1(y1)}" x2="${f1(x2)}" y2="${f1(y2)}" class="${cls}"/>`;
+
+  let view = null, dragging = false;
+  function fit(p, c, vis) {
+    let x0 = -p.fL, x1 = c.xs;
+    for (const q of [c.PE, c.PS]) if (vis(q)) { x0 = Math.min(x0, q.x); x1 = Math.max(x1, q.x); }
+    const pad = (x1 - x0) * 0.035; x0 -= pad; x1 += pad;
+    const yO = -p.fL * c.u;
+    const base = Math.max(c.rL, c.rc, p.hs / 2);
+    let ym = Math.max(base, Math.abs(yO));
+    for (const q of [c.PE, c.PS]) if (vis(q)) ym = Math.max(ym, Math.min(q.D / 2, 2.5 * base));
+    ym *= 1.1;
+    const aw = W - mL - mR, ah = (H - mT - mB) / 2;
+    const s = Math.min(aw / (x1 - x0), ah / (ym * p.k));
+    const ox = mL + (aw - (x1 - x0) * s) / 2, yA = mT + ah;
+    return {x0, x1, s, ox, yA, k: p.k};
+  }
+  function draw(p, c) {
+    const L = p.fL + p.e + p.fc;
+    const lim0 = -p.fL - 1.5 * L, lim1 = c.xs + 1.5 * L;
+    const vis = q => !q.inf && q.x >= lim0 && q.x <= lim1;
+    if (!dragging || !view) view = fit(p, c, vis);   // durant l'arrossegament la vista queda fixa
+    const {x0, x1, s, ox, yA} = view;
+    const yO = -p.fL * c.u;
+    const X = x => ox + (x - x0) * s, Y = y => yA - y * s * view.k;
+    const span = x1 - x0, clampX = x => Math.min(x1 + span, Math.max(x0 - span, x));
+
+    let g = '';
+    // regle
+    const raw = 80 / s, pw = Math.pow(10, Math.floor(Math.log10(raw)));
+    const step = [1, 2, 5, 10].find(m => m * pw >= raw) * pw;
+    let rul = ln(X(x0), H - 24, X(x1), H - 24, 'tick');
+    for (let t = Math.ceil(x0 / step) * step; t <= x1 + 1e-9; t += step) {
+      rul += ln(X(t), H - 28, X(t), H - 20, 'tick') + `<text x="${f1(X(t))}" y="${H - 7}" text-anchor="middle" class="tm">${fmt(Math.abs(t) < 1e-9 ? 0 : t, 1)}</text>`;
+    }
+    rul += `<text x="${W - 4}" y="${H - 7}" text-anchor="end" class="tm">mm</text>`;
+
+    // eix
+    g += ln(0, yA, W, yA, 'axis');
+    // paper i punt objecte
+    g += ln(X(-p.fL), mT - 8, X(-p.fL), H - mB + 8, 'paper');
+    g += ln(X(-p.fL), yA, X(-p.fL), Y(yO), 'obj');
+    // lents
+    const lens = (x, r, mount) => {
+      const xp = X(x), yt = Y(r), yb = Y(-r);
+      let o = ln(xp, yt, xp, yb, 'lens');
+      o += `<polyline points="${f1(xp - 6)},${f1(yt + 8)} ${f1(xp)},${f1(yt)} ${f1(xp + 6)},${f1(yt + 8)}" class="lens"/>`;
+      o += `<polyline points="${f1(xp - 6)},${f1(yb - 8)} ${f1(xp)},${f1(yb)} ${f1(xp + 6)},${f1(yb - 8)}" class="lens"/>`;
+      o += ln(xp, yt, xp, yt - mount, 'stop') + ln(xp, yb, xp, yb + mount, 'stop');
+      return o;
+    };
+    g += lens(0, c.rL, 13);
+    g += lens(p.e, c.rc, 13);
+    // sensor
+    g += `<rect x="${f1(X(c.xs) - 2.5)}" y="${f1(Y(p.hs / 2))}" width="5" height="${f1(Y(-p.hs / 2) - Y(p.hs / 2))}" class="sensor"/>`;
+    // pupil·les
+    const pupil = (q, cls) => {
+      if (!vis(q)) return '';
+      const off = Math.abs(q.x - c.xDO) < 1e-9 ? (cls === 'pe' ? -5 : 5) : 0;
+      const xp = X(q.x) + off, yt = Y(q.D / 2), yb = Y(-q.D / 2);
+      return ln(xp, yt, xp, yb, 'pplane ' + cls) + ln(xp, yt, xp, yt - 11, 'pupil ' + cls) + ln(xp, yb, xp, yb + 11, 'pupil ' + cls);
+    };
+    g += pupil(c.PE, 'pe') + pupil(c.PS, 'ps');
+
+    // raigs
+    const xmark = (x, y, cls) => ln(x - 4, y - 4, x + 4, y + 4, 'ray ' + cls) + ln(x - 4, y + 4, x + 4, y - 4, 'ray ' + cls);
+    const ray = (t, cls) => {
+      let o = '';
+      // prolongació a la PE (espai objecte)
+      if (!c.PE.inf && (c.PE.x > 1e-9 || c.PE.x < -p.fL - 1e-9)) {
+        const yf = x => t.yO + (t.hL - t.yO) * (x + p.fL) / p.fL;
+        const xa = c.PE.x > 0 ? 0 : -p.fL, xt = clampX(c.PE.x);
+        o += ln(X(xa), Y(yf(xa)), X(xt), Y(yf(xt)), 'ray ext ' + cls + (t.blockL ? ' blk' : ''));
+      }
+      o += ln(X(-p.fL), Y(t.yO), X(0), Y(t.hL), 'ray ' + cls + (t.blockL ? ' blk' : ''));
+      if (t.blockL) return o + xmark(X(0), Y(t.hL), cls);
+      if (p.e > 0) o += ln(X(0), Y(t.hL), X(p.e), Y(t.hc), 'ray ' + cls + (t.blockC ? ' blk' : ''));
+      if (t.blockC) return o + xmark(X(p.e), Y(t.hc), cls);
+      o += ln(X(p.e), Y(t.hc), X(c.xs), Y(t.ys), 'ray ' + cls);
+      // prolongació a la PS (espai imatge)
+      if (!c.PS.inf && (c.PS.x > c.xs + 1e-9 || c.PS.x < p.e - 1e-9)) {
+        const yf = x => t.hc + t.uOut * (x - p.e);
+        const xa = c.PS.x > c.xs ? c.xs : p.e, xt = clampX(c.PS.x);
+        o += ln(X(xa), Y(yf(xa)), X(xt), Y(yf(xt)), 'ray ext ' + cls);
+      }
+      return o;
+    };
+    for (const h of [c.rDO, -c.rDO]) g += ray(trace(p, c, h, 0), 'r-ax');
+    for (const h of [c.rDO, -c.rDO]) g += ray(trace(p, c, h, c.u), 'r-rim');
+    g += ray(trace(p, c, 0, c.u), 'r-ch');
+
+    // etiquetes superiors
+    const top = [
+      {x: X(-p.fL), ty: mT - 8, t: 'Paper'},
+      {x: X(0), ty: Y(c.rL) - 13, t: 'Lupa' + (c.DOcam ? '' : ' · DO')},
+      {x: X(p.e), ty: Y(c.rc) - 13, t: 'Objectiu' + (c.DOcam ? ' · DO' : '')},
+      {x: X(c.xs), ty: Y(p.hs / 2), t: 'Sensor'},
+    ];
+    const bot = [];
+    const pLab = (q, name, cls) => {
+      if (q.inf) { bot.push({x: W - mR - 70, ty: null, t: name + ' a l’infinit', cls}); return; }
+      if (!vis(q)) { const right = q.x > lim1; bot.push({x: right ? W - mR - 80 : mL + 80, ty: null, t: (right ? name + ' → x = ' : '← ' + name + ' x = ') + fmt(q.x, 0) + ' mm', cls}); return; }
+      const off = Math.abs(q.x - c.xDO) < 1e-9 ? (cls === 'tpe' ? -5 : 5) : 0;
+      bot.push({x: X(q.x) + off, ty: Math.min(Y(-q.D / 2) + 11, H - mB + 6), t: name, cls});
+    };
+    pLab(c.PE, 'PE', 'tpe'); pLab(c.PS, 'PS', 'tps');
+
+    const place = (items, y0, dy, dir) => {
+      let o = ''; const ends = [];
+      items.sort((a, b) => a.x - b.x);
+      for (const it of items) {
+        const w = it.t.length * 7.3 + 10;
+        const cx = Math.min(W - mR - w / 2, Math.max(mL + w / 2, it.x));
+        let r = 0; while (ends[r] !== undefined && ends[r] > cx - w / 2) r++;
+        ends[r] = cx + w / 2;
+        const y = y0 + dir * r * dy;
+        if (it.ty !== null) o += ln(it.x, y + (dir > 0 ? 4 : -12), it.x, it.ty, 'lead');
+        o += `<text x="${f1(cx)}" y="${f1(y)}" text-anchor="middle" class="${it.cls || ''}">${esc(it.t)}</text>`;
+      }
+      return o;
+    };
+    const labels = place(top, 16, 15, 1) + place(bot, H - mB + 24, 15, 1);
+
+    // punt del paper arrossegable
+    const hx = f1(X(-p.fL)), hy = f1(Y(yO));
+    const handle =
+      `<g id="objh" class="hg" tabindex="0" role="slider" aria-label="Alçada del punt sobre el paper" aria-orientation="vertical" ` +
+      `aria-valuemin="${-p.fL}" aria-valuemax="${p.fL}" aria-valuenow="${p.y.toFixed(1)}" aria-valuetext="y = ${fmt(p.y, 1)} mil·límetres">` +
+      `<circle cx="${hx}" cy="${hy}" r="16" class="hit"/><circle cx="${hx}" cy="${hy}" r="7.5" class="ring"/><circle cx="${hx}" cy="${hy}" r="3" class="obj"/></g>` +
+      `<text x="${f1(X(-p.fL) + 14)}" y="${f1(Y(yO) + (yO >= 0 ? -10 : 20))}" class="tobj">y = ${fmt(p.y, 1)} mm</text>`;
+
+    const hadFocus = document.activeElement && document.activeElement.id === 'objh';
+    svg.innerHTML =
+      `<defs><clipPath id="clipA"><rect x="0" y="${mT - 14}" width="${W}" height="${H - mT - mB + 28}"/></clipPath></defs>` +
+      `<g clip-path="url(#clipA)">${g}</g>` + labels + rul + handle;
+    if (hadFocus) document.getElementById('objh').focus();
+  }
+
+  /* ---------- arrossegar el punt del paper ---------- */
+  function setY(y) {
+    P.y = Math.round(Math.max(-P.fL, Math.min(P.fL, y)) * 10) / 10;
+    active = null; update();
+  }
+  function moveTo(ev) {
+    const pt = svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY;
+    const py = Math.min(H - mB + 10, Math.max(mT - 10, pt.matrixTransform(svg.getScreenCTM().inverse()).y));
+    setY((view.yA - py) / (view.s * view.k));
+  }
+  svg.addEventListener('pointerdown', ev => {
+    if (!ev.target.closest('#objh')) return;
+    dragging = true; svg.setPointerCapture(ev.pointerId); ev.preventDefault(); moveTo(ev);
+  });
+  svg.addEventListener('pointermove', ev => { if (dragging) moveTo(ev); });
+  const endDrag = () => { if (!dragging) return; dragging = false; update(); };
+  svg.addEventListener('pointerup', endDrag);
+  svg.addEventListener('pointercancel', endDrag);
+  svg.addEventListener('keydown', ev => {
+    if (!ev.target.closest('#objh')) return;
+    const d = ev.shiftKey ? 5 : 0.5;
+    if (ev.key === 'ArrowUp' || ev.key === 'ArrowRight') setY(P.y + d);
+    else if (ev.key === 'ArrowDown' || ev.key === 'ArrowLeft') setY(P.y - d);
+    else if (ev.key === 'Home') setY(0);
+    else return;
+    ev.preventDefault();
+  });
+
+  /* ---------- results ---------- */
+  const res = document.getElementById('results');
+  function results(p, c) {
+    const S = '<sub>', s_ = '</sub>';
+    let peTxt, psTxt;
+    if (c.DOcam) {
+      if (c.PE.inf) peTxt = `A l’infinit (e = f′${S}L${s_}): el raig principal arriba paral·lel a l’eix al costat del paper.`;
+      else {
+        const nat = p.e === 0 ? 'sobre la lupa (e = 0)' : p.e < p.fL ? 'virtual, a la dreta de la lupa, darrere la càmera' : 'real, a l’esquerra de la lupa, més enllà del paper';
+        peTxt = `<span class="mono">x = ${fmt(c.PE.x, 1)} mm · D = ${fmt(c.PE.D, 2)} mm</span><br>${nat}<span class="fx">x<sub>PE</sub> = e·f′<sub>L</sub>/(f′<sub>L</sub> − e) · D<sub>PE</sub> = D<sub>c</sub>·f′<sub>L</sub>/|f′<sub>L</sub> − e|</span>`;
+      }
+      psTxt = `<span class="mono">x = ${fmt(c.PS.x, 1)} mm · D = ${fmt(c.PS.D, 2)} mm</span><br>coincideix amb el DO (no hi ha cap lent darrere)`;
+    } else {
+      peTxt = `<span class="mono">x = 0 mm · D = ${fmt(p.DL, 2)} mm</span><br>coincideix amb la lupa (no hi ha cap lent davant)`;
+      if (c.PS.inf) psTxt = `A l’infinit (e = f′${S}c${s_}).`;
+      else {
+        const nat = p.e === 0 ? 'sobre l’objectiu (e = 0)' : p.e > p.fc ? 'real, a la dreta de l’objectiu' : 'virtual, a l’esquerra de l’objectiu';
+        psTxt = `<span class="mono">x = ${fmt(c.PS.x, 1)} mm · D = ${fmt(c.PS.D, 2)} mm</span><br>${nat}: imatge de la lupa a través de l’objectiu`;
+      }
+    }
+    const doTxt = c.DOcam
+      ? `Diafragma de l’objectiu, D<sub>c</sub> = ${fmt(p.Dc, 2)} mm`
+      : `Muntura de la lupa, D<sub>L</sub> = ${fmt(p.DL, 2)} mm`;
+    const vinTxt = p.e === 0 ? 'Cap: amb e = 0 la lupa no vinyeta; el camp el limita el sensor.'
+      : c.DOcam ? 'Muntura de la lupa' : 'Diafragma de l’objectiu';
+
+    const yP = p.fL * Math.tan(c.thP), yLim = p.fL * Math.tan(c.thLim), ySen = p.fL * Math.tan(c.thS);
+    const fieldRow = (name, th, y) => `<dt>${name}</dt><dd class="mono">${p.e === 0 && name !== 'Sensor' ? '—' : 'y = ' + fmt(y, 1) + ' mm'}</dd>`;
+    const limiter = c.thS < c.thLim ? 'el sensor (abans que s’apagui la vora)' : 'la muntura de la lupa (vinyetatge)';
+
+    const fr = beamFraction(p, c, c.u);
+    const ysen = c.u * p.fc, inSensor = Math.abs(ysen) <= p.hs / 2 + 1e-9;
+    let chips = '';
+    if (fr >= 1 - 1e-9) chips += '<span class="chip ok">Il·luminació plena</span>';
+    else if (fr > 0) chips += `<span class="chip warn">Vinyetatge: passa el ${fmt(fr * 100, 0)} % del feix</span>`;
+    else chips += '<span class="chip bad">Fora del camp: no hi arriba llum</span>';
+    chips += inSensor ? '<span class="chip ok">Cau dins del sensor</span>' : '<span class="chip bad">Fora del sensor</span>';
+
+    res.innerHTML = `
+      <h3>Diafragmes i pupil·les</h3>
+      <dl class="kv">
+        <dt>Diafragma d’obertura (DO)</dt><dd>${doTxt}</dd>
+        <dt>Pupil·la d’entrada (PE)</dt><dd>${peTxt}</dd>
+        <dt>Pupil·la de sortida (PS)</dt><dd>${psTxt}</dd>
+        <dt>Diafragma de vinyetatge</dt><dd>${vinTxt}</dd>
+      </dl>
+      <h3>Camp sobre el paper (radi)</h3>
+      <dl class="kv">
+        ${fieldRow('Il·luminació plena', c.thP, yP)}
+        ${fieldRow('Il·luminació límit', c.thLim, yLim)}
+        ${fieldRow('Sensor', c.thS, ySen)}
+        <dt>Qui limita el camp</dt><dd>${p.e === 0 ? 'el sensor' : limiter}</dd>
+      </dl>
+      <span class="fx" style="margin-top:6px">y = f′<sub>L</sub>·(D<sub>L</sub> ∓ D<sub>c</sub>)/(2e) · y<sub>sensor</sub> = f′<sub>L</sub>·h<sub>s</sub>/(2f′<sub>c</sub>)</span>
+      <h3>Punt del paper</h3>
+      <dl class="kv">
+        <dt>Alçada al paper</dt><dd class="mono">y = ${fmt(p.y, 1)} mm</dd>
+        <dt>Imatge al sensor</dt><dd class="mono">y′ = ${fmt(ysen, 2)} mm</dd>
+        <dt>Estat</dt><dd><div class="chips">${chips}</div></dd>
+      </dl>`;
+  }
+
+  function update() {
+    for (const b of pre.children) b.setAttribute('aria-pressed', String(b.id === 'p-' + active));
+    const c = compute(P);
+    draw(P, c);
+    results(P, c);
+  }
+  syncInputs();
+  update();
+})();
+</script>
+
+</body>
+</html>
